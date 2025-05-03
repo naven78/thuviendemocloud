@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Thu vien anh/video</title>
+  <link href="styles.css" rel="stylesheet">
+</head>
+<body class="container py-5">
+  <div class="upload-zone">
+    <h1 class="text-center">Thu vien anh & video</h1>
+    <form id="upload-form" enctype="multipart/form-data" class="mb-4">
+      <div class="mb-3">
+        <label for="media-input" class="form-label">Chon file anh hoac video de tai len:</label>
+        <input id="media-input" type="file" name="media" class="form-control" accept="image/*,video/*" required />
+      </div>
+      <div class="text-center">
+        <button type="submit" class="btn btn-primary px-4">Tai len</button>
+      </div>
+    </form>
+  </div>
+
+  <div id="gallery">
+    <h2 class="gallery-title">Danh sach file da tai len:</h2>
+    <div class="row" id="gallery-content">
+      <!-- noi dung -->
+    </div>
+    <div id="no-files-message" class="no-files-message" style="display: none;">
+      <p>Chua co file nao duoc tai len</p>
+    </div>
+  </div>
+
+  <script>
+    // ham tai va hien thi thu vien
+    async function loadGallery() {
+      try {
+        const response = await fetch('/api/gallery');
+        const files = await response.json();
+        
+        const galleryContent = document.getElementById('gallery-content');
+        galleryContent.innerHTML = '';
+        
+        if (files.length === 0) {
+          galleryContent.innerHTML = '<div class="col-12 text-center text-muted"><p>Chua co file nao duoc tai len</p></div>';
+          return;
+        }
+        
+        files.forEach(file => {
+          const ext = file.toLowerCase().split('.').pop();
+          const filePath = `/uploads/${file}`;
+          
+          const card = document.createElement('div');
+          card.className = 'col-md-3';
+          
+          if (['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext)) {
+            card.innerHTML = `
+              <div class="card">
+                <img src="${filePath}" class="card-img-top" alt="${file}" />
+                <div class="card-body">
+                  <form action="/delete" method="POST" class="text-center">
+                    <input type="hidden" name="filename" value="${file}" />
+                    <button type="submit" class="btn btn-danger btn-sm">Xoa file</button>
+                  </form>
+                </div>
+              </div>
+            `;
+          } else if (['mp4', 'mov', 'webm', 'avi', 'mkv'].includes(ext)) {
+            card.innerHTML = `
+              <div class="card">
+                <video controls class="card-img-top">
+                  <source src="${filePath}" type="video/${ext}">
+                </video>
+                <div class="card-body">
+                  <form action="/delete" method="POST" class="text-center">
+                    <input type="hidden" name="filename" value="${file}" />
+                    <button type="submit" class="btn btn-danger btn-sm">Xoa file</button>
+                  </form>
+                </div>
+              </div>
+            `;
+          }
+          
+          galleryContent.appendChild(card);
+        });
+      } catch (error) {
+        console.error('Loi khi tai thu vien:', error);
+      }
+    }
+
+    // Tai thu vien khi trang tai xong
+    loadGallery();
+
+    // Xu ly su kien tai file len
+    document.getElementById('upload-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      
+      try {
+        const response = await fetch('/upload', {
+          method: 'POST',
+          body: formData
+        });
+        if (response.ok) {
+          loadGallery();
+          e.target.reset();
+        } else {
+          alert('Tai file len khong thanh cong');
+        }
+      } catch (error) {
+        console.error('Loi khi tai file len:', error);
+      }
+    });
+  </script>
+</body>
+</html>
